@@ -1,0 +1,3 @@
+@extends('layouts.store')
+@section('title', 'Wishlist')
+@section('content')<span class="eyebrow">Keep them close</span><h1 class="page-title">Your wishlist.</h1><div class="products">@forelse($products as $product)<div class="panel"><h2 style="font-size:30px"><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h2><p>₦{{ number_format($product->price) }}</p><a href="{{ route('products.show', $product) }}">View piece ↗</a><form method="post" action="/wishlist/{{ $product->id }}">@csrf<button class="text-button">Remove</button></form></div>@empty<p>No favorites yet. <a href="/#collection">Find your sparkle ↗</a></p>@endforelse</div>@endsection
