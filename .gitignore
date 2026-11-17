@@ -33,6 +33,7 @@ id_ed25519
 !/storage/app/public/.gitignore
 /database/*.sqlite*
 /storage/pail
+/storage/app/store-install.lock
 /vendor
 _ide_helper.php
 Homestead.json

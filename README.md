@@ -55,7 +55,7 @@ php artisan test
 
 1. Clone the private repository into your cPanel home directory with a read-only SSH deploy key. Point the domain’s document root to the clone’s `public/` directory so the site opens at the domain URL. If the host locks your main domain’s document root, ask the host to map it to Laravel’s `public/` directory. [cPanel private Git setup](https://docs.cpanel.net/knowledge-base/web-services/guide-to-git-set-up-access-to-private-repositories/)
 2. Select PHP 8.4.1 or newer for both the website and the cPanel terminal. Create a production database and user, then create the server’s `.env` from `.env.example`. Set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` to the HTTPS domain, `SESSION_SECURE_COOKIE=true`, and the `DB_*` settings. Ensure PHP can write to `storage/` and `bootstrap/cache/`. [Laravel deployment guide](https://laravel.com/docs/13.x/deployment)
-3. Run the following from the clone directory on the first deployment:
+3. Choose the browser installer below or run the terminal setup for a fresh deployment:
 
    ```sh
    composer install --no-dev --prefer-dist --optimize-autoloader
@@ -72,3 +72,17 @@ php artisan test
 5. Run `php artisan schedule:run` every minute. Run `php artisan queue:work database --queue=emails --tries=3` under a process manager, or use the `--stop-when-empty` option in a non-overlapping cPanel cron job. Use your host’s full PHP CLI path.
 
 For updates, pull `main`, install from `composer.lock`, run `php artisan migrate --force` and `php artisan optimize`, then restart any long-running queue worker with `php artisan queue:restart`. Keep the existing production `APP_KEY` and database.
+
+### Browser installer
+
+Use this option on a fresh deployment after creating the database and configuring the server's `.env`. Run Composer and generate the application key before opening the page:
+
+```sh
+composer install --no-dev --prefer-dist --optimize-autoloader
+php artisan key:generate
+php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'
+```
+
+Keep `SESSION_DRIVER=file` during initial setup. Set `INSTALL_TOKEN` in the server's `.env` to the generated value. If configuration was cached, run `php artisan config:clear`. Open `/install` on your HTTPS domain, enter the token, and choose the administrator's name, email, and password.
+
+The installer applies database migrations and seeds the homepage and delivery templates. It closes once an administrator exists. Remove `INSTALL_TOKEN` from `.env` after setup, then run `php artisan storage:link` and `php artisan optimize`. Continue with the catalog, delivery zones, payment settings, and email setup in the admin dashboard.

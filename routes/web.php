@@ -1,11 +1,14 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{StorefrontController, AuthController, AdminController, OrderController};
+use App\Http\Controllers\InstallController;
 use App\Http\Middleware\AdminOnly;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
 Route::get('/', [StorefrontController::class, 'index'])->name('storefront');
+Route::get('/install', [InstallController::class, 'show'])->name('install.show');
+Route::post('/install', [InstallController::class, 'store'])->name('install.store');
 Route::get('/products/{product}', function (Product $product) {
     abort_unless($product->active, 404);
     return view('product', compact('product'));
@@ -68,7 +71,7 @@ Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function (
     Route::put('/credentials', [\App\Http\Controllers\ContentController::class, 'credentials'])->middleware('throttle:5,1');
 });
 
-Route::get('/admin/login', fn () => view('auth', ['mode' => 'login', 'token' => null]))->middleware('guest');
+Route::get('/admin/login', fn () => view('auth', ['mode' => 'login', 'token' => null]))->middleware('guest')->name('admin.login');
 
 Route::middleware('auth')->group(function () {
     Route::get('/account/banks', [\App\Http\Controllers\RefundAccountController::class, 'banks'])->middleware('throttle:20,1');
