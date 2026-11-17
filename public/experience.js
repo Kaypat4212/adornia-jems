@@ -37,8 +37,8 @@
             try {
                 await navigator.clipboard.writeText(copy.dataset.copy);
                 copy.textContent = 'Copied ✓';
-                status.textContent = 'Account number copied.';
-            } catch { status.textContent = 'Select the account number and copy it manually.'; }
+                status.textContent = 'Copied to clipboard.';
+            } catch { status.textContent = 'Copy unavailable. Select and copy the text manually.'; }
         }
         const link = event.target.closest('a');
         if (link && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !link.hasAttribute('download') && !link.target && !link.href.includes('/receipt') && !link.hash && new URL(link.href).origin === location.origin) {
@@ -66,7 +66,7 @@
         retry.hidden = true;
         bankStatus.textContent = 'Fetching banks securely…';
         try {
-            const response = await fetch('/account/banks', {headers:{Accept:'application/json'}, signal:AbortSignal.timeout(20000)});
+            const response = await fetch(document.querySelector('meta[name="store-base"]').content.replace(/\/$/, '') + '/account/banks', {headers:{Accept:'application/json'}, signal:AbortSignal.timeout(20000)});
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Banks could not be loaded.');
             select.replaceChildren(new Option('Select your bank', ''));

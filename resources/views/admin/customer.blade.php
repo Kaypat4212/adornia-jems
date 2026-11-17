@@ -9,5 +9,5 @@
 @forelse($accounts as $account)<div class="refund-account"><div><strong>{{ $account->account_name }}</strong><p>{{ $account->bank_name }} · ••••••{{ substr($account->account_number, -4) }}</p><span class="status-chip">{{ strtoupper($account->verification_mode) }} · {{ $account->verified_at->format('j M Y') }}</span>
 @if($account->verification_mode === 'live')<details><summary>View verified refund details</summary><p>Account number: {{ $account->account_number }}<br>Bank code: {{ $account->bank_code }}</p></details>@else<p>Test verification. Ask the customer to re-verify in live mode before arranging a real bank refund.</p>@endif
 </div></div>@empty<p>No verified accounts saved.</p>@endforelse</div></div>
-<h2>Order history</h2>@foreach($orders as $order)<a class="order-link" href="/orders/{{ $order->id }}">{{ $order->reference }} · ₦{{ number_format($order->total) }} · {{ $order->status }}</a>@endforeach{{ $orders->links() }}
+<h2>Order history</h2>@foreach($orders as $order)<a class="order-link" href="{{ url('/orders/' . ($order->id)) }}">{{ $order->reference }} · ₦{{ number_format($order->total) }} · {{ $order->status }}</a>@endforeach{{ $orders->links() }}
 @endsection

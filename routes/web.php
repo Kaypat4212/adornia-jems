@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [OrderController::class, 'checkout'])->name('checkout');
     Route::post('/checkout', [OrderController::class, 'store'])->block()->middleware('throttle:10,1');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{order}/reorder', [OrderController::class, 'reorder'])->block()->name('orders.reorder');
     Route::get('/wishlist', function (Request $request) {
         return view('wishlist', ['products' => $request->user()->wishlist()->where('active', true)->get()]);
     })->name('wishlist');
@@ -43,6 +44,7 @@ Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function (
     Route::get('/', [AdminController::class, 'index'])->name('admin');
     Route::resource('products', AdminController::class)->except(['index', 'show'])->names('admin.products');
     Route::put('/orders/{order}', [OrderController::class, 'status'])->name('admin.orders.update');
+    Route::put('/orders/{order}/tracking', [OrderController::class, 'tracking'])->name('admin.orders.tracking');
 });
 
 Route::post('/payments/webhook/{provider}/{mode?}', [\App\Http\Controllers\PaymentController::class, 'webhook'])->whereIn('provider', ['paystack', 'flutterwave', 'kora'])->whereIn('mode', ['test', 'live'])->name('payments.webhook');
@@ -59,6 +61,7 @@ Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function (
     Route::put('/sections/{section}', [\App\Http\Controllers\ContentController::class, 'save']);
     Route::delete('/sections/{section}', [\App\Http\Controllers\ContentController::class, 'destroy']);
     Route::get('/sales', [\App\Http\Controllers\ContentController::class, 'sales']);
+    Route::get('/sales/export', [\App\Http\Controllers\ContentController::class, 'exportSales'])->name('admin.sales.export');
     Route::get('/customers', [\App\Http\Controllers\ContentController::class, 'customers']);
     Route::get('/customers/{user}', [\App\Http\Controllers\ContentController::class, 'customer']);
     Route::get('/credentials', fn () => view('admin.credentials'));

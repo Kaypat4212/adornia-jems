@@ -3,8 +3,8 @@
 @section('content')
 <span class="eyebrow">One step closer</span>
 <h1 class="page-title">Make it yours.</h1>
-<div class="columns" data-checkout data-subtotal="{{ $subtotal }}">
-    <form class="panel" method="post" action="/checkout">
+<div class="columns" data-checkout data-delivery-url="{{ url('/checkout/delivery-options') }}" data-subtotal="{{ $subtotal }}">
+    <form class="panel" method="post" action="{{ url('/checkout') }}">
         @csrf
         <h2>Delivery details</h2>
         @foreach(['name' => 'Full name', 'phone' => 'Phone number', 'address' => 'Street address', 'city' => 'City / town'] as $key => $label)
@@ -36,7 +36,7 @@
             <strong>Manual bank transfer: proof is required.</strong>
             <p>Place your order, transfer the exact total to the company account shown on the next page, then upload a receipt or screenshot. Your payment stays pending until an admin confirms receipt.</p>
         </div>
-        <p><a href="/wallet">Add money to your wallet ↗</a></p>
+        <p><a href="{{ url('/wallet') }}">Add money to your wallet ↗</a></p>
         <label class="check"><input type="checkbox" name="terms" value="1" required @checked(old('terms'))>I confirm my delivery address and agree to the selected delivery fee and payment method.</label>
         <button class="cta" data-place-order disabled>PLACE ORDER ↗</button>
         <noscript><p>JavaScript is required to load delivery prices. Enable it and reload checkout.</p></noscript>
@@ -50,7 +50,7 @@
         <div class="cart-row"><span>Delivery</span><strong data-delivery-fee>Select location</strong></div>
         <div class="total"><span>Total · NGN</span><strong data-checkout-total>—</strong></div>
         <p>Delivery fees and stock are checked again when you order. Pay on delivery is offered only in zones enabled by the admin.</p>
-        <a href="/#collection">Edit your bag ↗</a>
+        <a href="{{ url('/#collection') }}">Edit your bag ↗</a>
     </div>
 </div>
 @endsection

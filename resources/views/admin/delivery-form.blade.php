@@ -1,4 +1,4 @@
-<form method="post" action="/admin/delivery{{ $rate ? '/'.$rate->id : '' }}">
+<form method="post" action="{{ url('/admin/delivery' . ($rate ? '/'.$rate->id : '')) }}">
 @csrf
 @if($rate) @method('PUT') @endif
 <div class="columns"><label>Zone / service name<input name="name" value="{{ $rate?->name }}" placeholder="e.g. Lagos Mainland" required maxlength="100"></label>

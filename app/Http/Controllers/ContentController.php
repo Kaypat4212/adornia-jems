@@ -5,6 +5,8 @@ use Illuminate\Http\{Request, RedirectResponse};
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContentController extends Controller
 {
@@ -58,9 +60,48 @@ class ContentController extends Controller
 
     public function sales(Request $request): View
     {
-        $orders = Order::query()->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))->when($request->filled('q'), fn ($query) => $query->where('reference', 'like', '%'.$request->string('q').'%'));
+        return view('admin.sales', [
+            'orders' => $this->salesQuery($request)->latest()->paginate(25)->withQueryString(),
+            'payments' => Payment::latest()->paginate(25, ['*'], 'payment_page'),
+            'entries' => WalletEntry::latest()->limit(30)->get(),
+        ]);
+    }
 
-        return view('admin.sales', ['orders' => $orders->latest()->paginate(25)->withQueryString(), 'payments' => Payment::latest()->paginate(25, ['*'], 'payment_page'), 'entries' => WalletEntry::latest()->limit(30)->get()]);
+    public function exportSales(Request $request): StreamedResponse
+    {
+        $orders = $this->salesQuery($request);
+
+        return response()->streamDownload(function () use ($orders): void {
+            $file = fopen('php://output', 'wb');
+            fputcsv($file, ['Order', 'Date', 'State', 'Delivery (NGN)', 'Total (NGN)', 'Fulfillment', 'Payment status', 'Payment method', 'Mode'], escape: '');
+            foreach ($orders->lazyById() as $order) {
+                $fields = [
+                    $order->reference, $order->created_at->toDateTimeString(), $order->state,
+                    $order->delivery_fee, $order->total, $order->status, $order->payment_status,
+                    $order->payment_method, $order->payment_mode,
+                ];
+                $fields = array_map(
+                    fn ($value) => is_string($value) && preg_match('/^[\s=+@-]/', $value) ? "'".$value : $value,
+                    $fields,
+                );
+                fputcsv($file, $fields, escape: '');
+            }
+            fclose($file);
+        }, 'adornia-sales.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    private function salesQuery(Request $request): Builder
+    {
+        $filters = $request->validate([
+            'q' => 'nullable|string|max:100',
+            'status' => 'nullable|in:pending,confirmed,shipped,delivered,cancelled',
+            'mode' => 'nullable|in:test,live',
+        ]);
+
+        return Order::query()
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['mode'] ?? null, fn ($query, $mode) => $query->where('payment_mode', $mode))
+            ->when($filters['q'] ?? null, fn ($query, $search) => $query->where('reference', 'like', '%'.$search.'%'));
     }
 
     public function customers(): View

@@ -81,6 +81,58 @@ class OrderController extends Controller
         return view('order', ['order' => $order->load('items')]);
     }
 
+    public function reorder(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless($order->user_id === $request->user()->id, 403);
+
+        $quantities = $request->session()->get('cart', []);
+        $items = $order->items()->get();
+        $products = Product::where('active', true)->whereIn('id', $items->pluck('product_id'))->get()->keyBy('id');
+        $added = 0;
+        $requested = 0;
+
+        foreach ($items as $item) {
+            $requested += $item->quantity;
+            $current = $quantities[$item->product_id] ?? 0;
+            $stock = $products->get($item->product_id)?->stock ?? 0;
+            $quantity = min($item->quantity, max(0, min($stock, 99) - $current));
+
+            if ($quantity > 0) {
+                $quantities[$item->product_id] = $current + $quantity;
+                $added += $quantity;
+            }
+        }
+
+        $request->session()->put('cart', $quantities);
+        if ($added === 0) {
+            return back()->with('status', 'No pieces could be added. They may be out of stock or already in your bag.');
+        }
+
+        $message = $added < $requested
+            ? 'Available pieces were added. Some quantities are no longer available or are already in your bag.'
+            : 'Pieces added to your bag at current prices.';
+
+        return redirect()->route('checkout')->with('status', $message);
+    }
+
+    public function tracking(Request $request, Order $order): RedirectResponse
+    {
+        $data = $request->validate([
+            'carrier' => 'required|string|max:80',
+            'tracking_number' => 'required|string|max:120',
+        ]);
+
+        DB::transaction(function () use ($order, $data): void {
+            $locked = Order::lockForUpdate()->findOrFail($order->id);
+            if (! in_array($locked->status, ['confirmed', 'shipped'])) {
+                throw ValidationException::withMessages(['tracking_number' => 'Tracking can be added to confirmed or shipped orders.']);
+            }
+            $locked->update($data);
+        });
+
+        return back()->with('status', 'Shipment tracking saved.');
+    }
+
     public function status(Request $request, Order $order): RedirectResponse
     {
         $data = $request->validate(['status' => 'required|in:confirmed,shipped,delivered,cancelled']);

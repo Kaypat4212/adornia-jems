@@ -36,7 +36,7 @@
         const selectedState = state.value;
         message.textContent = 'Fetching delivery prices…';
         try {
-            const response = await fetch('/checkout/delivery-options?state=' + encodeURIComponent(selectedState), {headers:{Accept:'application/json'}, signal:controller.signal});
+            const response = await fetch(checkout.dataset.deliveryUrl + '?state=' + encodeURIComponent(selectedState), {headers:{Accept:'application/json'}, signal:controller.signal});
             if (!response.ok) throw new Error('Delivery prices could not be loaded. Choose your state again to retry.');
             const data = await response.json();
             if (selectedState !== state.value) return;
