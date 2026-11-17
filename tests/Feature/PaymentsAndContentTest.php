@@ -5,6 +5,7 @@ use App\Models\{User, Payment, Order, Product, HomepageSection, WalletEntry};
 use App\Services\{PaymentGateway, Wallet};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Database\Factories\UserFactory;
 use Tests\TestCase;
 
 class PaymentsAndContentTest extends TestCase
@@ -155,7 +156,7 @@ class PaymentsAndContentTest extends TestCase
         $user->forceFill(['is_admin' => true, 'must_change_password' => true])->save();
         $this->actingAs($user)->get('/admin')->assertRedirect('/admin/credentials');
         $this->get('/admin/credentials')->assertOk();
-        $this->put('/admin/credentials', ['email' => 'owner@example.com', 'current_password' => 'password', 'password' => 'MyNewSecret12345', 'password_confirmation' => 'MyNewSecret12345'])->assertRedirect();
+        $this->put('/admin/credentials', ['email' => 'owner@example.com', 'current_password' => UserFactory::password(), 'password' => 'MyNewSecret12345', 'password_confirmation' => 'MyNewSecret12345'])->assertRedirect();
         $this->assertFalse($user->fresh()->must_change_password);
         $this->assertEquals('owner@example.com', $user->fresh()->email);
         $this->get('/admin')->assertOk();

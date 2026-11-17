@@ -13,17 +13,24 @@ Artisan::command('store:admin {email}', function () {
     return 0;
 })->purpose('Grant store administration to an existing registered account');
 
-Artisan::command('store:setup-admin', function () {
+Artisan::command('store:setup-admin {email?}', function () {
     if (\App\Models\User::where('is_admin', true)->exists()) {
         $this->error('An administrator already exists. Use your existing account or password reset.');
         return 1;
     }
-    $password = \Illuminate\Support\Str::password(20);
-    $user = \App\Models\User::firstOrNew(['email' => 'admin@adornia.test']);
+    $email = trim((string) ($this->argument('email') ?? $this->ask('Administrator email')));
+    if (! filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
+        $this->error('Enter a valid administrator email address.');
+
+        return 1;
+    }
+
+    $user = \App\Models\User::firstOrNew(['email' => $email]);
     if ($user->exists) {
         $this->error('Setup email is already registered. Promote an existing account with store:admin instead.');
         return 1;
     }
+    $password = \Illuminate\Support\Str::password(20);
     $user->forceFill(['name' => 'Adornia Administrator', 'password' => \Illuminate\Support\Facades\Hash::make($password), 'is_admin' => true, 'must_change_password' => true])->save();
     $this->info('Email: '.$user->email);
     $this->info('Temporary password: '.$password);

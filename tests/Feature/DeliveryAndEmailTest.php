@@ -8,6 +8,7 @@ use App\Mail\StoreMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\{DB, Mail, Storage};
+use Database\Factories\UserFactory;
 use Tests\TestCase;
 
 class DeliveryAndEmailTest extends TestCase
@@ -135,7 +136,7 @@ class DeliveryAndEmailTest extends TestCase
         Mail::assertSent(StoreMessage::class, 1);
         $this->assertEquals('sent', $delivery->fresh()->status);
         $this->assertEquals(1, $delivery->fresh()->attempts);
-        $this->actingAs($this->admin())->put('/admin/email-settings', ['current_password' => 'password', 'driver' => 'smtp', 'from_address' => 'store@example.com', 'from_name' => 'Adornia', 'admin_email' => 'owner@example.com', 'host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'tls', 'username' => 'store@example.com', 'password' => 'private-smtp-password'])->assertRedirect();
+        $this->actingAs($this->admin())->put('/admin/email-settings', ['current_password' => UserFactory::password(), 'driver' => 'smtp', 'from_address' => 'store@example.com', 'from_name' => 'Adornia', 'admin_email' => 'owner@example.com', 'host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'tls', 'username' => 'store@example.com', 'password' => 'private-smtp-password'])->assertRedirect();
         $this->assertStringNotContainsString('private-smtp-password', DB::table('email_settings')->value('content'));
         $this->get('/admin/email-settings')->assertOk()->assertDontSee('private-smtp-password');
     }

@@ -24,6 +24,20 @@ class CommerceTest extends TestCase
         \App\Models\DeliveryRate::where('state', 'Lagos')->update(['active' => true, 'fee' => 0, 'pay_on_delivery' => true]);
     }
 
+    public function test_first_admin_uses_the_supplied_email_and_requires_a_password_change(): void
+    {
+        $this->artisan('store:setup-admin', ['email' => 'invalid'])->assertFailed();
+        $this->artisan('store:setup-admin')
+            ->expectsQuestion('Administrator email', 'owner@example.test')
+            ->expectsOutput('Email: owner@example.test')
+            ->assertSuccessful();
+
+        $admin = User::where('email', 'owner@example.test')->firstOrFail();
+        $this->assertTrue($admin->is_admin);
+        $this->assertTrue($admin->must_change_password);
+        $this->artisan('store:setup-admin', ['email' => 'another@example.test'])->assertFailed();
+    }
+
     private function address(): array
     {
         return ['name' => 'Test Customer', 'phone' => '08012345678', 'address' => '12 Test Road', 'city' => 'Lagos', 'state' => 'Lagos', 'delivery_rate_id' => \App\Models\DeliveryRate::where('state', 'Lagos')->value('id'), 'terms' => '1'];

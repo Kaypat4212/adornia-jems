@@ -6,6 +6,7 @@ use App\Services\PaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{Http, Storage, DB};
 use Illuminate\Http\UploadedFile;
+use Database\Factories\UserFactory;
 use Tests\TestCase;
 
 class PaymentSettingsAndProfileTest extends TestCase
@@ -36,13 +37,13 @@ class PaymentSettingsAndProfileTest extends TestCase
     public function test_gateway_keys_are_encrypted_not_redisplayed_and_password_protected(): void
     {
         $this->actingAs($this->admin());
-        $data = ['mode' => 'test', 'enabled' => 1, 'current_password' => 'password', 'keys' => ['test' => ['secret' => 'sk_test_private', 'public' => 'pk_test_public'], 'live' => ['secret' => 'sk_live_private']]];
+        $data = ['mode' => 'test', 'enabled' => 1, 'current_password' => UserFactory::password(), 'keys' => ['test' => ['secret' => 'sk_test_private', 'public' => 'pk_test_public'], 'live' => ['secret' => 'sk_live_private']]];
         $this->put('/admin/payment-settings/paystack', array_replace($data, ['current_password' => 'wrong']))->assertSessionHasErrors();
         $this->assertDatabaseCount('gateway_settings', 0);
         $this->put('/admin/payment-settings/paystack', $data)->assertRedirect();
         $this->assertStringNotContainsString('sk_test_private', DB::table('gateway_settings')->value('credentials'));
         $this->get('/admin/payment-settings')->assertOk()->assertDontSee('sk_test_private')->assertDontSee('sk_live_private');
-        $this->put('/admin/payment-settings/paystack', ['mode' => 'live', 'enabled' => 1, 'current_password' => 'password'])->assertRedirect();
+        $this->put('/admin/payment-settings/paystack', ['mode' => 'live', 'enabled' => 1, 'current_password' => UserFactory::password()])->assertRedirect();
         $this->assertEquals('sk_live_private', app(\App\Services\GatewayConfiguration::class)->credential('paystack'));
         $this->assertStringNotContainsString('sk_live_private', GatewaySetting::first()->toJson());
     }
@@ -76,7 +77,7 @@ class PaymentSettingsAndProfileTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin)->get('/admin/sales')->assertOk()->assertSee('Review transfer');
         $this->get('/admin/payments/'.$payment->id.'/receipt')->assertOk();
-        $review = ['decision' => 'approve', 'bank_reference' => 'BANK-TXN-123', 'review_note' => 'Confirmed in company bank', 'current_password' => 'password'];
+        $review = ['decision' => 'approve', 'bank_reference' => 'BANK-TXN-123', 'review_note' => 'Confirmed in company bank', 'current_password' => UserFactory::password()];
         $this->post('/admin/payments/'.$payment->id.'/review', $review)->assertRedirect();
         $this->post('/admin/payments/'.$payment->id.'/review', $review)->assertSessionHasErrors();
         $this->assertEquals(100000, $user->fresh()->wallet_balance);
@@ -99,7 +100,7 @@ class PaymentSettingsAndProfileTest extends TestCase
         $this->assertEquals('live', $payment->mode);
         $payment->update(['status' => 'under_review']);
         $this->actingAs($this->admin())->put('/admin/orders/'.$order->id, ['status' => 'confirmed'])->assertSessionHasErrors();
-        $this->post('/admin/payments/'.$payment->id.'/review', ['decision' => 'approve', 'bank_reference' => 'BANK-TXN-123', 'review_note' => 'Bank confirmed', 'current_password' => 'password'])->assertRedirect();
+        $this->post('/admin/payments/'.$payment->id.'/review', ['decision' => 'approve', 'bank_reference' => 'BANK-TXN-123', 'review_note' => 'Bank confirmed', 'current_password' => UserFactory::password()])->assertRedirect();
         $this->assertEquals('paid', $order->fresh()->payment_status);
         $this->assertDatabaseCount('wallet_entries', 0);
     }
@@ -113,14 +114,14 @@ class PaymentSettingsAndProfileTest extends TestCase
         ]);
         $user = User::factory()->create();
         $this->actingAs($user)->get('/account/banks')->assertOk()->assertJsonPath('banks.0.code', '058');
-        $this->post('/account/refund-accounts', ['bank_code' => '058', 'account_number' => '0123456789', 'account_name' => 'Spoofed', 'current_password' => 'password'])->assertRedirect();
+        $this->post('/account/refund-accounts', ['bank_code' => '058', 'account_number' => '0123456789', 'account_name' => 'Spoofed', 'current_password' => UserFactory::password()])->assertRedirect();
         $account = RefundAccount::firstOrFail();
         $this->assertEquals('ADA VERIFIED', $account->account_name);
         $this->assertEquals('test', $account->verification_mode);
         $this->assertStringNotContainsString('0123456789', DB::table('refund_accounts')->value('account_number'));
         $this->get('/account')->assertOk()->assertSee('ADA VERIFIED')->assertDontSee('0123456789');
-        $this->actingAs(User::factory()->create())->delete('/account/refund-accounts/'.$account->id, ['current_password' => 'password'])->assertForbidden();
-        $this->actingAs($user)->delete('/account/refund-accounts/'.$account->id, ['current_password' => 'password'])->assertRedirect();
+        $this->actingAs(User::factory()->create())->delete('/account/refund-accounts/'.$account->id, ['current_password' => UserFactory::password()])->assertForbidden();
+        $this->actingAs($user)->delete('/account/refund-accounts/'.$account->id, ['current_password' => UserFactory::password()])->assertRedirect();
         $this->assertDatabaseCount('refund_accounts', 0);
     }
 
@@ -128,7 +129,7 @@ class PaymentSettingsAndProfileTest extends TestCase
     {
         config(['payments.paystack.secret' => 'sk_test_mock']);
         Http::fake(['*' => Http::response(['status' => false], 422)]);
-        $this->actingAs(User::factory()->create())->post('/account/refund-accounts', ['bank_code' => '058', 'account_number' => '0123456789', 'current_password' => 'password'])->assertSessionHasErrors('bank');
+        $this->actingAs(User::factory()->create())->post('/account/refund-accounts', ['bank_code' => '058', 'account_number' => '0123456789', 'current_password' => UserFactory::password()])->assertSessionHasErrors('bank');
         $this->assertDatabaseCount('refund_accounts', 0);
     }
 
@@ -168,7 +169,7 @@ class PaymentSettingsAndProfileTest extends TestCase
     public function test_company_bank_survives_homepage_settings_update_and_admin_can_view_customer(): void
     {
         $user = $this->admin();
-        $this->actingAs($user)->put('/admin/payment-settings/bank', ['current_password' => 'password', 'enabled' => 1, 'bank_name' => 'Company Bank', 'account_name' => 'Adornia Jems', 'account_number' => '0123456789'])->assertRedirect();
+        $this->actingAs($user)->put('/admin/payment-settings/bank', ['current_password' => UserFactory::password(), 'enabled' => 1, 'bank_name' => 'Company Bank', 'account_name' => 'Adornia Jems', 'account_number' => '0123456789'])->assertRedirect();
         $settings = StoreSetting::find(1)->content;
         unset($settings['manual_bank']);
         $this->put('/admin/settings', $settings)->assertRedirect();
@@ -179,7 +180,7 @@ class PaymentSettingsAndProfileTest extends TestCase
 
     public function test_wrong_mode_key_is_rejected_without_flashing_secrets(): void
     {
-        $this->actingAs($this->admin())->put('/admin/payment-settings/flutterwave', ['current_password' => 'password', 'mode' => 'test', 'enabled' => 1, 'keys' => ['test' => ['secret' => 'FLWSECK-live-secret']]])->assertSessionHasErrors('keys')->assertSessionMissing('_old_input.keys');
+        $this->actingAs($this->admin())->put('/admin/payment-settings/flutterwave', ['current_password' => UserFactory::password(), 'mode' => 'test', 'enabled' => 1, 'keys' => ['test' => ['secret' => 'FLWSECK-live-secret']]])->assertSessionHasErrors('keys')->assertSessionMissing('_old_input.keys');
         $this->assertDatabaseCount('gateway_settings', 0);
     }
 }
