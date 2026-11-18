@@ -2,11 +2,16 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{StorefrontController, AuthController, AdminController, OrderController};
 use App\Http\Controllers\InstallController;
+use App\Http\Controllers\PublicImageController;
 use App\Http\Middleware\AdminOnly;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
 Route::get('/', [StorefrontController::class, 'index'])->name('storefront');
+Route::get('/storage/{directory}/{filename}', PublicImageController::class)
+    ->whereIn('directory', ['products', 'homepage', 'avatars'])
+    ->where('filename', '(?i:[a-z0-9][a-z0-9_.-]*\.(?:jpe?g|png|webp))')
+    ->withoutMiddleware('web');
 Route::get('/install', [InstallController::class, 'show'])->name('install.show');
 Route::post('/install', [InstallController::class, 'store'])->name('install.store');
 Route::get('/products/{product}', function (Product $product) {
