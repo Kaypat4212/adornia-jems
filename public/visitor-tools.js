@@ -30,7 +30,7 @@
             document.querySelector('[data-active-visitors]').textContent = data.active;
             const rows = data.visitors.map(visitor => {
                 const row = document.createElement('p');
-                row.textContent = `Visitor #${visitor.id} · ${visitor.ip} · ${visitor.user} · ${visitor.path}`;
+                row.textContent = `Visitor #${visitor.id} · ${visitor.ip} · ${visitor.country || 'Unknown country'} · ${visitor.device || 'Unknown device'} · ${visitor.user} · ${visitor.path}`;
                 return row;
             });
             if (!rows.length) {

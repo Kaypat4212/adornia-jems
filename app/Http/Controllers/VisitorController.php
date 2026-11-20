@@ -89,6 +89,8 @@ class VisitorController extends Controller
             'visitors' => Visitor::where('last_seen_at', '>=', now()->subSeconds(90))->latest('last_seen_at')->limit(50)->get()->map(fn (Visitor $visitor) => [
                 'id' => $visitor->id, 'ip' => $visitor->maskedIp(), 'path' => $visitor->path,
                 'user' => $visitor->user_id ? 'Account #'.$visitor->user_id : 'Guest',
+                'country' => $visitor->country ?? 'Unknown', 'country_code' => $visitor->country_code,
+                'device' => $visitor->device_type,
                 'last_seen' => $visitor->last_seen_at->toIso8601String(),
             ])])->header('Cache-Control', 'no-store, private');
     }

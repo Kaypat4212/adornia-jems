@@ -3,6 +3,7 @@
 @section('content')
 <h1 class="page-title">Live visitors</h1>
 <p><strong data-active-visitors>{{ $active }}</strong> active in the last 90 seconds. Admin visits are excluded.</p>
+<p>Country is estimated from the visitor’s IP using ipwho.is and updates through the emails queue. Device type is estimated from the browser. VPNs and browser settings can affect these estimates; unavailable details show as Unknown. Existing visitors update on their next visit.</p>
 <div data-live-visitors data-live-url="{{ route('admin.visitors.live') }}" class="panel" aria-live="polite">Live activity refreshes every 15 seconds.</div>
 <details class="panel"><summary>CAPTCHA, alerts and loaders</summary>
 <form method="post" action="{{ route('admin.visitors.settings') }}" autocomplete="off">
@@ -19,8 +20,8 @@
     <button class="cta">SAVE VISITOR SETTINGS</button>
 </form></details>
 <h2>Recent visitors</h2>
-<div class="table-wrap"><table><thead><tr><th>Visitor</th><th>IP</th><th>Account</th><th>Page</th><th>Last seen</th></tr></thead><tbody>
-@forelse($visitors as $visitor)<tr><td>#{{ $visitor->id }}</td><td>{{ $visitor->maskedIp() }}</td><td>{{ $visitor->user_id ? '#'.$visitor->user_id : 'Guest' }}</td><td>{{ $visitor->path }}</td><td>{{ $visitor->last_seen_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="5">No visitors recorded yet.</td></tr>@endforelse
+<div class="table-wrap"><table><thead><tr><th>Visitor</th><th>IP</th><th>Country</th><th>Device</th><th>Account</th><th>Page</th><th>Last seen</th></tr></thead><tbody>
+@forelse($visitors as $visitor)<tr><td>#{{ $visitor->id }}</td><td>{{ $visitor->maskedIp() }}</td><td>{{ $visitor->country ?? 'Unknown' }}</td><td>{{ $visitor->device_type }}</td><td>{{ $visitor->user_id ? '#'.$visitor->user_id : 'Guest' }}</td><td>{{ $visitor->path }}</td><td>{{ $visitor->last_seen_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="7">No visitors recorded yet.</td></tr>@endforelse
 </tbody></table></div>{{ $visitors->links() }}
 <h2>New visitor alerts</h2>
 <p>Email attempts are available in <a href="{{ url('/admin/email-settings') }}">Email notifications</a>. Email and Telegram delivery use the emails queue.</p>

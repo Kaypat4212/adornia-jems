@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Jobs\DeliverVisitorTelegram;
+use App\Jobs\ResolveVisitorCountry;
 use App\Models\EmailDelivery;
 use App\Models\User;
 use App\Models\Visitor;
 use App\Models\VisitorAlert;
 use App\Models\VisitorSetting;
 use App\Services\VisitorTracking;
+use App\Services\VisitorDevice;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -114,6 +116,78 @@ class VisitorTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request['text'], '192.0.2.x') && ! str_contains($request['text'], '192.0.2.3'));
         $this->actingAs(User::factory()->create(['is_admin' => true]))->get('/admin/visitors')
             ->assertOk()->assertDontSee($token);
+    }
+
+    public function test_device_types_are_detected_and_updated_when_the_browser_changes(): void
+    {
+        $detector = app(VisitorDevice::class);
+        foreach ([
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148' => 'Mobile',
+            'Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari/537.36' => 'Mobile',
+            'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)' => 'Tablet',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) Mobile/15E148 Safari/604.1' => 'Tablet',
+            'Mozilla/5.0 (Linux; Android 13; SM-X700) Safari/537.36' => 'Tablet',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' => 'Desktop',
+            'Mozilla/5.0 (X11; Linux x86_64)' => 'Desktop',
+            'Googlebot/2.1 Mobile' => 'Bot',
+            '' => 'Unknown',
+        ] as $agent => $expected) {
+            $this->assertSame($expected, $detector->type($agent));
+        }
+        $tracking = app(VisitorTracking::class);
+        $token = (string) Str::uuid();
+        $request = Request::create('/', server: ['REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'iPhone Mobile']);
+        $visitor = $tracking->record($request, $token);
+        $this->assertSame('Mobile', $visitor->device_type);
+        $request->headers->set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0)');
+        $this->assertSame('Desktop', $tracking->record($request, $token)->device_type);
+        Queue::assertNotPushed(ResolveVisitorCountry::class);
+    }
+
+    public function test_country_is_resolved_in_the_background_cached_and_shown_to_admin(): void
+    {
+        Http::fake(['ipwho.is/*' => Http::response(['success' => true, 'country' => 'Nigeria', 'country_code' => 'NG'])]);
+        $tracking = app(VisitorTracking::class);
+        $request = Request::create('/', server: ['REMOTE_ADDR' => '8.8.8.8', 'HTTP_USER_AGENT' => 'iPhone Mobile']);
+        $token = (string) Str::uuid();
+        $visitor = $tracking->record($request, $token);
+        $tracking->record($request, $token);
+        Queue::assertPushed(ResolveVisitorCountry::class, 1);
+        Http::assertNothingSent();
+        (new ResolveVisitorCountry($visitor->id, $visitor->ip_hash))->handle();
+        $other = $tracking->record($request, (string) Str::uuid());
+        (new ResolveVisitorCountry($other->id, $other->ip_hash))->handle();
+        Http::assertSentCount(1);
+        $this->assertSame('Nigeria', $visitor->fresh()->country);
+        $this->assertSame('NG', $other->fresh()->country_code);
+        $this->actingAs(User::factory()->create(['is_admin' => true]))->get('/admin/visitors/live')
+            ->assertJsonFragment(['country' => 'Nigeria', 'country_code' => 'NG', 'device' => 'Mobile']);
+        $this->get('/admin/visitors')->assertOk()->assertSee('Nigeria')->assertSee('Mobile');
+    }
+
+    public function test_changed_ips_clear_old_countries_and_stale_jobs_cannot_overwrite_them(): void
+    {
+        $tracking = app(VisitorTracking::class);
+        $token = (string) Str::uuid();
+        $request = Request::create('/', server: ['REMOTE_ADDR' => '8.8.8.8']);
+        $visitor = $tracking->record($request, $token);
+        $oldHash = $visitor->ip_hash;
+        $visitor->update(['country' => 'Nigeria', 'country_code' => 'NG']);
+        $request = Request::create('/', server: ['REMOTE_ADDR' => '1.1.1.1']);
+        $visitor = $tracking->record($request, $token);
+        $this->assertNull($visitor->country);
+        Http::fake(['ipwho.is/*' => Http::response([], 503)]);
+        (new ResolveVisitorCountry($visitor->id, $oldHash))->handle();
+        Http::assertNothingSent();
+        try {
+            (new ResolveVisitorCountry($visitor->id, $visitor->ip_hash))->handle();
+            $this->fail('A failed geolocation service should trigger a queue retry.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Visitor country lookup failed', $exception->getMessage());
+        }
+        $this->assertNull($visitor->fresh()->country);
+        $tracking->record($request, $token);
+        Queue::assertPushed(ResolveVisitorCountry::class, 2);
     }
 
     public function test_admin_dashboard_and_settings_are_protected_and_live_counts_expire(): void

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\DeliverVisitorTelegram;
+use App\Jobs\ResolveVisitorCountry;
 use App\Models\Visitor;
 use App\Models\VisitorAlert;
 use App\Models\VisitorSetting;
@@ -52,13 +53,23 @@ class VisitorTracking
             ]);
             if ($visitor->ip_hash !== $ipHash) {
                 $visitor->verified_at = null;
+                $visitor->country = null;
+                $visitor->country_code = null;
             }
             $visitor->fill(['ip_hash' => $ipHash, 'ip_address' => $request->ip() ?? 'unknown',
-                'user_id' => $request->user()?->id, 'last_seen_at' => now(), 'path' => $path]);
+                'user_id' => $request->user()?->id, 'last_seen_at' => now(), 'path' => $path,
+                'device_type' => app(VisitorDevice::class)->type($request->userAgent())]);
             if ($verified) {
                 $visitor->verified_at = now();
             }
+            $lookupCountry = config('visitors.country_lookup_enabled', true) && $visitor->country_lookup_hash !== $ipHash;
+            if ($lookupCountry) {
+                $visitor->country_lookup_hash = $ipHash;
+            }
             $visitor->save();
+            if ($lookupCountry && filter_var($request->ip(), FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                ResolveVisitorCountry::dispatch($visitor->id, $ipHash)->onConnection('database')->onQueue('emails')->afterCommit();
+            }
 
             $newIp = DB::table('visitor_identities')->insertOrIgnore(['identity' => 'ip:'.$ipHash, 'created_at' => now()]);
             $newUser = $request->user() ? DB::table('visitor_identities')->insertOrIgnore([
