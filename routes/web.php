@@ -3,6 +3,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{StorefrontController, AuthController, AdminController, OrderController};
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\PublicImageController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Middleware\AdminOnly;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -50,6 +51,10 @@ Route::middleware('auth')->group(function () {
 });
 Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin');
+    Route::get('/categories', [CategoryController::class, 'index'])->name('admin.categories');
+    Route::post('/categories', [CategoryController::class, 'save'])->name('admin.categories.store');
+    Route::put('/categories/{category}', [CategoryController::class, 'save'])->name('admin.categories.update');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
     Route::resource('products', AdminController::class)->except(['index', 'show'])->names('admin.products');
     Route::put('/orders/{order}', [OrderController::class, 'status'])->name('admin.orders.update');
     Route::put('/orders/{order}/tracking', [OrderController::class, 'tracking'])->name('admin.orders.tracking');

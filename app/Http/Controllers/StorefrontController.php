@@ -6,12 +6,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Models\Product;
+use App\Models\Category;
 
 class StorefrontController extends Controller
 {
     public function index(): View
     {
-        return view('storefront', ['products' => Product::where('active', true)->get()->toArray(), 'sections' => \App\Models\HomepageSection::where('active', true)->orderBy('sort_order')->orderBy('id')->get(), 'settings' => \App\Models\StoreSetting::find(1)?->content ?? []]);
+        return view('storefront', ['categories' => Category::orderBy('name')->get(), 'products' => Product::where('active', true)->get()->toArray(), 'sections' => \App\Models\HomepageSection::where('active', true)->orderBy('sort_order')->orderBy('id')->get(), 'settings' => \App\Models\StoreSetting::find(1)?->content ?? []]);
     }
 
     public function cart(Request $request): JsonResponse

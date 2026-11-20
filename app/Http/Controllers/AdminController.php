@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,12 +18,18 @@ class AdminController extends Controller
 
     public function create(): View
     {
-        return view('admin.product', ['product' => new Product(['active' => true, 'stock' => 0, 'art' => 'ring'])]);
+        return view('admin.product', [
+            'product' => new Product(['active' => true, 'stock' => 0, 'art' => 'ring']),
+            'categories' => Category::orderBy('name')->get(),
+        ]);
     }
 
     public function edit(Product $product): View
     {
-        return view('admin.product', compact('product'));
+        return view('admin.product', [
+            'product' => $product,
+            'categories' => Category::orderBy('name')->get(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -48,7 +55,7 @@ class AdminController extends Controller
 
     private function data(Request $request): array
     {
-        $data = $request->validate(['name' => 'required|string|max:100', 'type' => 'required|in:Rings,Earrings,Necklaces,Bracelets', 'detail' => 'required|string|max:200', 'description' => 'nullable|string|max:5000', 'price' => 'required|integer|min:1|max:100000000', 'stock' => 'required|integer|min:0|max:100000', 'art' => 'required|in:ring,band,hoops,necklace', 'tag' => 'nullable|string|max:40', 'active' => 'nullable|boolean', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096']);
+        $data = $request->validate(['name' => 'required|string|max:100', 'type' => 'required|string|exists:categories,name', 'detail' => 'required|string|max:200', 'description' => 'nullable|string|max:5000', 'price' => 'required|integer|min:1|max:100000000', 'stock' => 'required|integer|min:0|max:100000', 'art' => 'required|in:ring,band,hoops,necklace', 'tag' => 'nullable|string|max:40', 'active' => 'nullable|boolean', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096']);
         unset($data['image_upload']);
         $data['tag'] = $data['tag'] ?? '';
         $data['active'] = $request->boolean('active');
