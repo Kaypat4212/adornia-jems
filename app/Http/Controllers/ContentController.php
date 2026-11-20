@@ -4,6 +4,7 @@ use App\Models\{HomepageSection, StoreSetting, User, Order, Payment, WalletEntry
 use Illuminate\Http\{Request, RedirectResponse};
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -26,7 +27,14 @@ class ContentController extends Controller
 
     public function save(Request $request, ?HomepageSection $section = null): RedirectResponse
     {
-        $data = $request->validate(['type' => 'required|in:hero,ticker,collection,story,custom', 'sort_order' => 'required|integer|min:0|max:10000', 'active' => 'nullable|boolean', 'content' => 'required|array', 'content.*' => 'nullable|string|max:5000', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096']);
+        $upload = $request->file('image_upload');
+        $uploadError = $upload instanceof \Illuminate\Http\UploadedFile ? $upload->getErrorMessage() : '';
+        $data = $request->validate(['type' => 'required|in:hero,ticker,collection,story,custom', 'sort_order' => 'required|integer|min:0|max:10000', 'active' => 'nullable|boolean', 'content' => 'required|array', 'content.*' => 'nullable|string|max:5000', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096'], [
+            'image_upload.uploaded' => $uploadError ?: 'The photo could not be uploaded. Choose it again and retry.',
+            'image_upload.max' => 'Choose a photo up to 4 MB.',
+            'image_upload.image' => 'Choose a valid JPG, PNG or WebP photo.',
+            'image_upload.mimes' => 'Choose a JPG, PNG or WebP photo.',
+        ]);
         if ($data['type'] !== 'custom' && HomepageSection::where('type', $data['type'])->when($section, fn ($query) => $query->where('id', '!=', $section->id))->exists()) {
             return back()->withErrors(['type' => 'Only one of each built-in section is allowed. Use a custom section for additional content.']);
         }
@@ -45,6 +53,9 @@ class ContentController extends Controller
         }
         if ($request->hasFile('image_upload')) {
             $content['image'] = $request->file('image_upload')->store('homepage', 'public');
+            if ($content['image'] === false) {
+                throw ValidationException::withMessages(['image_upload' => 'The photo could not be saved. Check that the server can write to storage/app/public and that the hosting account has free disk space.']);
+            }
         }
         ($section ?? new HomepageSection)->fill(['type' => $data['type'], 'sort_order' => $data['sort_order'], 'active' => $request->boolean('active'), 'content' => $content])->save();
 
