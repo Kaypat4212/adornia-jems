@@ -53,11 +53,17 @@ class VisitorTest extends TestCase
         if (! function_exists('imagecreatetruecolor')) {
             $this->markTestSkipped('PHP GD is required to render the CAPTCHA.');
         }
-        $this->get('/visitor-check')->assertOk()->assertSee('Verification code');
+        $page = $this->get('/visitor-check')->assertOk()->assertSee('Verification code')
+            ->assertSee('src="data:image/png;base64,', false)
+            ->assertDontSee('/visitor-check/image')
+            ->assertHeader('Cache-Control', 'no-store, private');
+        preg_match('/src="data:image\/png;base64,([A-Za-z0-9+\/=]+)"/', $page->getContent(), $matches);
+        $this->assertStringStartsWith("\x89PNG\r\n\x1a\n", base64_decode($matches[1]));
         $challenge = session('visitor_captcha');
         $this->assertSame(64, strlen($challenge['hash']));
         $this->assertArrayNotHasKey('answer', $challenge);
-        $this->get('/visitor-check/image')->assertOk()->assertHeader('Content-Type', 'image/png')
+        $this->assertArrayNotHasKey('image', $challenge);
+        $this->get('/visitor-check/image')->assertRedirect('/visitor-check')
             ->assertHeader('Cache-Control', 'no-store, private');
     }
 

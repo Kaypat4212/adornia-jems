@@ -16,7 +16,7 @@ class VisitorController extends Controller
 {
     public function challenge(Request $request): Response
     {
-        abort_unless(function_exists('imagecreatetruecolor'), 503, 'Photo verification is unavailable. Contact the store administrator.');
+        abort_unless(function_exists('imagecreatetruecolor'), 503, 'Visitor verification is unavailable. Contact the store administrator.');
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         $answer = '';
         $image = imagecreatetruecolor(280, 90);
@@ -37,19 +37,16 @@ class VisitorController extends Controller
         $png = ob_get_clean();
         $request->session()->put('visitor_captcha', [
             'hash' => hash_hmac('sha256', $answer, config('app.key')), 'expires' => time() + 300,
-            'image' => base64_encode($png),
         ]);
         app(VisitorTracking::class)->token($request);
 
-        return response()->view('visitor-challenge')->header('Cache-Control', 'no-store, private')->header('X-Robots-Tag', 'noindex, nofollow');
+        return response()->view('visitor-challenge', ['captchaImage' => base64_encode($png)])
+            ->header('Cache-Control', 'no-store, private')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
-    public function image(Request $request): Response
+    public function image(): RedirectResponse
     {
-        $challenge = $request->session()->get('visitor_captcha');
-        abort_unless($challenge && $challenge['expires'] >= time(), 404);
-
-        return response(base64_decode($challenge['image']))->header('Content-Type', 'image/png')->header('Cache-Control', 'no-store, private');
+        return redirect()->route('visitor.challenge')->header('Cache-Control', 'no-store, private');
     }
 
     public function verify(Request $request, VisitorTracking $tracking): RedirectResponse

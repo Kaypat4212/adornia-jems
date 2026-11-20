@@ -8,6 +8,7 @@ use App\Models\EmailDelivery;
 use App\Models\EmailSetting;
 use App\Models\User;
 use App\Services\EmailConfiguration;
+use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
@@ -111,6 +112,40 @@ class AdminEmailToolsTest extends TestCase
             $this->get('/admin/logs?source=../../.env')->assertNotFound();
         } finally {
             unlink($path);
+        }
+    }
+
+    public function test_clearing_logs_requires_an_admin_password_confirmation_and_an_allowed_source(): void
+    {
+        $path = storage_path('logs/laravel-clear-test-'.Str::uuid().'.log');
+        $other = storage_path('logs/laravel-keep-test-'.Str::uuid().'.log');
+        $outside = storage_path('not-a-log-'.Str::uuid().'.txt');
+        file_put_contents($path, 'Old error contents');
+        file_put_contents($other, 'Keep this other log');
+        file_put_contents($outside, 'Keep this file');
+        $data = ['source' => hash('sha256', $path), 'scope' => 'selected',
+            'confirm_clear' => 1, 'current_password' => UserFactory::password()];
+        try {
+            $this->delete('/admin/logs', $data)->assertRedirect('/login');
+            $this->actingAs(User::factory()->create())->delete('/admin/logs', $data)->assertForbidden();
+            $this->actingAs(User::factory()->create(['is_admin' => true]));
+            $this->delete('/admin/logs', array_replace($data, ['current_password' => 'incorrect']))
+                ->assertSessionHasErrors('current_password');
+            $this->delete('/admin/logs', array_replace($data, ['confirm_clear' => 0]))
+                ->assertSessionHasErrors('confirm_clear');
+            $this->delete('/admin/logs', array_replace($data, ['source' => hash('sha256', $outside)]))->assertNotFound();
+            $this->assertSame('Old error contents', file_get_contents($path));
+            $this->delete('/admin/logs', $data)->assertRedirect(route('admin.logs', ['source' => $data['source']]));
+            $this->assertFileExists($path);
+            $this->assertSame('', file_get_contents($path));
+            $this->assertSame('Keep this other log', file_get_contents($other));
+            $this->assertSame('Keep this file', file_get_contents($outside));
+            file_put_contents($path, 'New error', FILE_APPEND);
+            $this->assertSame('New error', file_get_contents($path));
+        } finally {
+            unlink($path);
+            unlink($other);
+            unlink($outside);
         }
     }
 
