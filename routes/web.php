@@ -105,6 +105,8 @@ Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function (
     Route::put('/delivery/{rate}', [\App\Http\Controllers\DeliveryController::class, 'save']);
     Route::delete('/delivery/{rate}', [\App\Http\Controllers\DeliveryController::class, 'destroy']);
     Route::get('/email-settings', [\App\Http\Controllers\EmailSettingsController::class, 'index']);
+    Route::post('/email-settings/test', [\App\Http\Controllers\EmailSettingsController::class, 'test'])->middleware('throttle:3,1')->block();
+    Route::get('/logs', [\App\Http\Controllers\AdminLogsController::class, 'index'])->name('admin.logs');
     Route::put('/email-settings', [\App\Http\Controllers\EmailSettingsController::class, 'save'])->middleware('throttle:5,1');
     Route::post('/email-deliveries/{delivery}/retry', [\App\Http\Controllers\EmailSettingsController::class, 'retry'])->middleware('throttle:10,1');
 });

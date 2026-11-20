@@ -5,6 +5,9 @@ use App\Jobs\DeliverStoreEmail;
 use Illuminate\Http\{Request, RedirectResponse};
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use App\Services\EmailConfiguration;
+use Illuminate\Support\Str;
+use Throwable;
 
 class EmailSettingsController extends Controller
 {
@@ -31,12 +34,46 @@ class EmailSettingsController extends Controller
 
     public function retry(EmailDelivery $delivery): RedirectResponse
     {
-        if ($delivery->status !== 'failed') {
-            return back()->withErrors(['email' => 'Only failed emails can be retried.']);
+        if (! in_array($delivery->status, ['pending', 'failed', 'logged'])) {
+            return back()->withErrors(['email' => 'This notification has already been sent.']);
         }
-        $delivery->update(['status' => 'pending']);
-        DeliverStoreEmail::dispatch($delivery->id)->onConnection('database')->onQueue('emails');
 
-        return back()->with('status', 'Email queued for another delivery attempt.');
+        return $this->sendNow($delivery);
+    }
+
+    public function test(Request $request, EmailConfiguration $configuration): RedirectResponse
+    {
+        $data = $request->validate(['recipient' => 'required|email|max:254']);
+        $configuration->apply();
+        if (config('mail.default') !== 'smtp') {
+            return back()->withErrors(['email' => 'Save SMTP delivery mode and settings before sending a test email.']);
+        }
+        $delivery = EmailDelivery::create([
+            'event_key' => 'smtp-test:'.Str::uuid(),
+            'recipient' => $data['recipient'],
+            'subject' => 'Adornia Jems SMTP test',
+            'message' => 'This test email confirms that your saved SMTP settings can send messages from Adornia Jems.',
+            'action_path' => '/admin/email-settings',
+        ]);
+
+        return $this->sendNow($delivery);
+    }
+
+    private function sendNow(EmailDelivery $delivery): RedirectResponse
+    {
+        try {
+            (new DeliverStoreEmail($delivery->id, retryLogged: true))->handle(app(EmailConfiguration::class));
+        } catch (Throwable) {
+            return back()->withErrors(['email' => 'Email delivery failed. Review the notification error below and check your SMTP settings.']);
+        }
+        $delivery->refresh();
+        if ($delivery->status === 'logged') {
+            return back()->with('status', 'Message recorded in log mode. Select SMTP mode to send email.');
+        }
+        if ($delivery->status !== 'sent') {
+            return back()->with('status', 'Another attempt may be running. Refresh the delivery log shortly.');
+        }
+
+        return back()->with('status', 'The mail server accepted the email. Check the recipient inbox and spam folder.');
     }
 }

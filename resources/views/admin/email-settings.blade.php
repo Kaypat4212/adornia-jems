@@ -14,5 +14,31 @@
 <label>SMTP password<input name="password" type="password" autocomplete="new-password" placeholder="{{ filled($settings['password'] ?? null) ? 'Saved · leave blank to keep' : 'Not saved' }}"></label>
 <label>Current admin password<input name="current_password" type="password" required autocomplete="current-password"></label></div><button class="cta">SAVE EMAIL SETTINGS</button></form>
 <div class="notice">Order and payment emails are queued so mail outages cannot block checkout. Run <code>php artisan queue:work database --queue=emails --tries=3</code> on your server. Local log mode records messages without sending them.</div>
-<h2>Notification delivery log</h2><div class="table-wrap"><table><tr><th>Recipient</th><th>Subject</th><th>Status</th><th>Attempts</th><th>Actions</th></tr>@forelse($deliveries as $delivery)<tr><td>{{ $delivery->recipient }}</td><td>{{ $delivery->subject }}</td><td>{{ $delivery->status }}</td><td>{{ $delivery->attempts }}</td><td>@if($delivery->status === 'failed')<p>{{ $delivery->last_error }}</p><form method="post" action="{{ url('/admin/email-deliveries/' . ($delivery->id) . '/retry') }}">@csrf<button class="text-button">Retry</button></form>@endif</td></tr>@empty<tr><td colspan="5">No notifications queued yet.</td></tr>@endforelse</table></div>{{ $deliveries->links() }}
+<form class="panel" method="post" action="{{ url('/admin/email-settings/test') }}">
+    @csrf
+    <h2>Test SMTP</h2>
+    <p>Save your SMTP settings above, then send a test using those settings.</p>
+    <label>Test recipient<input type="email" name="recipient" value="{{ old('recipient', auth()->user()->email) }}" required></label>
+    <button class="cta">SEND SMTP TEST</button>
+</form>
+<h2>Notification delivery log</h2>
+<p>Send now and Resend attempt delivery immediately using your saved mail settings. <a href="{{ route('admin.logs') }}">View Laravel and PHP error logs</a>.</p>
+<div class="table-wrap"><table>
+    <thead><tr><th>Recipient</th><th>Subject</th><th>Status</th><th>Attempts</th><th>Last attempt</th><th>Actions</th></tr></thead>
+    <tbody>
+    @forelse($deliveries as $delivery)
+        <tr>
+            <td>{{ $delivery->recipient }}</td><td>{{ $delivery->subject }}</td>
+            <td>{{ $delivery->status }} @if($delivery->last_error)<p>{{ $delivery->last_error }}</p>@endif</td>
+            <td>{{ $delivery->attempts }}</td><td>{{ $delivery->updated_at->format('j M Y H:i') }}</td>
+            <td>@if(in_array($delivery->status, ['pending', 'failed', 'logged']))
+                <form method="post" action="{{ url('/admin/email-deliveries/' . ($delivery->id) . '/retry') }}">
+                    @csrf
+                    <button class="text-button">{{ $delivery->status === 'failed' ? 'Resend' : 'Send now' }}</button>
+                </form>
+            @else {{ $delivery->sent_at?->format('j M Y H:i') }} @endif</td>
+        </tr>
+    @empty<tr><td colspan="6">No notifications queued yet.</td></tr>@endforelse
+    </tbody>
+</table></div>{{ $deliveries->links() }}
 @endsection
