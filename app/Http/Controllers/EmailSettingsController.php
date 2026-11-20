@@ -18,7 +18,7 @@ class EmailSettingsController extends Controller
 
     public function save(Request $request): RedirectResponse
     {
-        $validator = Validator::make($request->all(), ['current_password' => 'required|current_password', 'driver' => 'required|in:smtp,log', 'from_address' => 'required|email|max:254', 'from_name' => 'required|string|max:100', 'admin_email' => 'required|email|max:254', 'host' => ['nullable', 'required_if:driver,smtp', 'regex:/^[a-zA-Z0-9.-]+$/', 'max:253'], 'port' => 'nullable|required_if:driver,smtp|integer|min:1|max:65535', 'encryption' => 'required|in:tls,ssl', 'username' => 'nullable|string|max:254', 'password' => 'nullable|string|max:2048']);
+        $validator = Validator::make($request->all(), ['current_password' => 'required|current_password', 'driver' => 'required|in:smtp,php,log', 'from_address' => 'required|email|max:254', 'from_name' => 'required|string|max:100', 'admin_email' => 'required|email|max:254', 'host' => ['nullable', 'required_if:driver,smtp', 'regex:/^[a-zA-Z0-9.-]+$/', 'max:253'], 'port' => 'nullable|required_if:driver,smtp|integer|min:1|max:65535', 'encryption' => 'required|in:tls,ssl', 'username' => 'nullable|string|max:254', 'password' => 'nullable|string|max:2048']);
         if ($validator->fails()) {
             return back()->withErrors($validator);
         }
@@ -45,14 +45,14 @@ class EmailSettingsController extends Controller
     {
         $data = $request->validate(['recipient' => 'required|email|max:254']);
         $configuration->apply();
-        if (config('mail.default') !== 'smtp') {
-            return back()->withErrors(['email' => 'Save SMTP delivery mode and settings before sending a test email.']);
+        if (! in_array(config('mail.default'), ['smtp', 'php'])) {
+            return back()->withErrors(['email' => 'Save SMTP or cPanel PHP mail settings before sending a test email.']);
         }
         $delivery = EmailDelivery::create([
-            'event_key' => 'smtp-test:'.Str::uuid(),
+            'event_key' => 'mail-test:'.Str::uuid(),
             'recipient' => $data['recipient'],
-            'subject' => 'Adornia Jems SMTP test',
-            'message' => 'This test email confirms that your saved SMTP settings can send messages from Adornia Jems.',
+            'subject' => 'Adornia Jems mail delivery test',
+            'message' => 'This test was submitted using the saved Adornia Jems mail settings.',
             'action_path' => '/admin/email-settings',
         ]);
 
@@ -68,12 +68,12 @@ class EmailSettingsController extends Controller
         }
         $delivery->refresh();
         if ($delivery->status === 'logged') {
-            return back()->with('status', 'Message recorded in log mode. Select SMTP mode to send email.');
+            return back()->with('status', 'Message recorded in log mode. Select SMTP or cPanel PHP mail mode to send email.');
         }
         if ($delivery->status !== 'sent') {
             return back()->with('status', 'Another attempt may be running. Refresh the delivery log shortly.');
         }
 
-        return back()->with('status', 'The mail server accepted the email. Check the recipient inbox and spam folder.');
+        return back()->with('status', 'The mail server accepted the email for delivery. Inbox delivery is unconfirmed. Check spam and cPanel Track Delivery if it does not arrive.');
     }
 }

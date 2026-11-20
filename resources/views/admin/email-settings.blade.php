@@ -3,7 +3,7 @@
 @section('content')<span class="eyebrow">Keep customers in the loop</span><h1 class="page-title">Email notifications.</h1>
 <p>Customers receive welcome, order, payment, transfer-proof and fulfillment updates. Admins receive new-order and payment-review notifications. Password reset emails use the same mail settings.</p>
 <form class="panel" method="post" action="{{ url('/admin/email-settings') }}" autocomplete="off">@csrf @method('PUT')<div class="columns">
-<label>Delivery mode<select name="driver"><option value="log" @selected(($settings['driver'] ?? config('mail.default')) === 'log')>Local log — no email is sent</option><option value="smtp" @selected(($settings['driver'] ?? config('mail.default')) === 'smtp')>SMTP — send email</option></select></label>
+<label>Delivery mode<select name="driver"><option value="log" @selected(($settings['driver'] ?? config('mail.default')) === 'log')>Local log — no email is sent</option><option value="smtp" @selected(($settings['driver'] ?? config('mail.default')) === 'smtp')>SMTP — send email</option><option value="php" @selected(($settings['driver'] ?? config('mail.default')) === 'php')>cPanel PHP mail — local hosting server</option></select></label>
 <label>Admin notification email<input name="admin_email" type="email" value="{{ $settings['admin_email'] ?? auth()->user()->email }}" required></label>
 <label>From email<input name="from_address" type="email" value="{{ $settings['from_address'] ?? config('mail.from.address') }}" required></label>
 <label>From name<input name="from_name" value="{{ $settings['from_name'] ?? 'Adornia Jems' }}" required></label>
@@ -16,20 +16,20 @@
 <div class="notice">Order and payment emails are queued so mail outages cannot block checkout. Run <code>php artisan queue:work database --queue=emails --tries=3</code> on your server. Local log mode records messages without sending them.</div>
 <form class="panel" method="post" action="{{ url('/admin/email-settings/test') }}">
     @csrf
-    <h2>Test SMTP</h2>
-    <p>Save your SMTP settings above, then send a test using those settings.</p>
+    <h2>Test email delivery</h2>
+    <p>Save your delivery mode above, then send a test through SMTP or PHP mail. For PHP mail, use a From email belonging to a mailbox on this cPanel account.</p>
     <label>Test recipient<input type="email" name="recipient" value="{{ old('recipient', auth()->user()->email) }}" required></label>
-    <button class="cta">SEND SMTP TEST</button>
+    <button class="cta">SEND TEST EMAIL</button>
 </form>
-<h2>Notification delivery log</h2>
+<h2>Notification delivery log</h2><p>Accepted means the mail server took responsibility for delivery. Check cPanel → Email → Track Delivery for delivery failures, and Email Deliverability for SPF and DKIM records.</p>
 <p>Send now and Resend attempt delivery immediately using your saved mail settings. <a href="{{ route('admin.logs') }}">View Laravel and PHP error logs</a>.</p>
 <div class="table-wrap"><table>
     <thead><tr><th>Recipient</th><th>Subject</th><th>Status</th><th>Attempts</th><th>Last attempt</th><th>Actions</th></tr></thead>
     <tbody>
     @forelse($deliveries as $delivery)
         <tr>
-            <td>{{ $delivery->recipient }}</td><td>{{ $delivery->subject }}</td>
-            <td>{{ $delivery->status }} @if($delivery->last_error)<p>{{ $delivery->last_error }}</p>@endif</td>
+            <td>{{ $delivery->recipient }}</td><td>{{ $delivery->subject }}<small class="small-text">{{ $delivery->transport ?? 'Transport not recorded' }} @if($delivery->message_id)<br>Message ID: {{ $delivery->message_id }}@endif</small></td>
+            <td>{{ $delivery->status === 'sent' ? 'Accepted by mail server' : $delivery->status }} @if($delivery->last_error)<p>{{ $delivery->last_error }}</p>@endif</td>
             <td>{{ $delivery->attempts }}</td><td>{{ $delivery->updated_at->format('j M Y H:i') }}</td>
             <td>@if(in_array($delivery->status, ['pending', 'failed', 'logged']))
                 <form method="post" action="{{ url('/admin/email-deliveries/' . ($delivery->id) . '/retry') }}">

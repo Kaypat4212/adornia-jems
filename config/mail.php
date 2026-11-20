@@ -36,6 +36,9 @@ return [
     */
 
     'mailers' => [
+        'php' => [
+            'transport' => 'php',
+        ],
 
         'smtp' => [
             'transport' => 'smtp',

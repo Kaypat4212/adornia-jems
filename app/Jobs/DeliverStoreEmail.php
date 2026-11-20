@@ -57,8 +57,9 @@ class DeliverStoreEmail implements ShouldQueue
         $delivery->increment('attempts');
         try {
             $configuration->apply();
-            Mail::to($delivery->recipient)->send(new StoreMessage($delivery->subject, $delivery->message, $delivery->action_path ?? '/account'));
-            $delivery->update(['status' => config('mail.default') === 'log' ? 'logged' : 'sent', 'sent_at' => now(), 'last_error' => null]);
+            $delivery->update(['transport' => config('mail.default')]);
+            $sent = Mail::to($delivery->recipient)->send(new StoreMessage($delivery->subject, $delivery->message, $delivery->action_path ?? '/account'));
+            $delivery->update(['status' => config('mail.default') === 'log' ? 'logged' : 'sent', 'sent_at' => now(), 'last_error' => null, 'message_id' => $sent?->getMessageId()]);
         } catch (\Throwable $exception) {
             $error = mb_substr(app(LogRedactor::class)->clean($exception->getMessage()), 0, 1500);
             $delivery->update(['status' => 'failed', 'last_error' => $error, 'sent_at' => null]);

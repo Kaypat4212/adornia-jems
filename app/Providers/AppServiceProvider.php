@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->app->make('mail.manager')->extend('php', fn (array $config) => new \App\Services\PhpMailTransport);
         \App\Models\Payment::updated(function (\App\Models\Payment $payment): void {
             if ($payment->wasChanged('status')) {
                 app(\App\Services\StoreEmail::class)->paymentUpdated($payment);
