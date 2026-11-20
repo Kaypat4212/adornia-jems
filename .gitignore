@@ -27,6 +27,7 @@ id_ed25519
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+/public/.user.ini
 /storage/app/private/**
 !/storage/app/private/.gitignore
 /storage/app/public/**
