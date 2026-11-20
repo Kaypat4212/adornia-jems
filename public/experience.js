@@ -1,6 +1,11 @@
 (() => {
     const progress = document.createElement('div');
     progress.className = 'navigation-progress';
+    const loader = document.querySelector('meta[name="page-loader"]')?.content || 'bar';
+    if (['bar', 'ring', 'dots', 'pulse', 'diamond', 'none'].includes(loader)) {
+        progress.classList.add(`loader--${loader}`);
+    }
+    for (let index = 0; index < 3; index++) progress.append(document.createElement('span'));
     progress.setAttribute('aria-hidden', 'true');
     const status = document.createElement('div');
     status.className = 'sr-only';

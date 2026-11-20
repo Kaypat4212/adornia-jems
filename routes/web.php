@@ -8,7 +8,11 @@ use App\Http\Middleware\AdminOnly;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
-Route::get('/', [StorefrontController::class, 'index'])->name('storefront');
+Route::get('/', [StorefrontController::class, 'index'])->middleware(\App\Http\Middleware\CheckNewVisitor::class)->name('storefront');
+Route::get('/visitor-check', [\App\Http\Controllers\VisitorController::class, 'challenge'])->middleware('throttle:20,1')->name('visitor.challenge');
+Route::get('/visitor-check/image', [\App\Http\Controllers\VisitorController::class, 'image'])->name('visitor.image');
+Route::post('/visitor-check', [\App\Http\Controllers\VisitorController::class, 'verify'])->middleware('throttle:5,1')->name('visitor.verify');
+Route::post('/visitor/heartbeat', [\App\Http\Controllers\VisitorController::class, 'heartbeat'])->middleware('throttle:6,1')->name('visitor.heartbeat');
 Route::get('/storage/{directory}/{filename}', PublicImageController::class)
     ->whereIn('directory', ['products', 'homepage', 'avatars'])
     ->where('filename', '(?i:[a-z0-9][a-z0-9_.-]*\.(?:jpe?g|png|webp))')
@@ -51,6 +55,9 @@ Route::middleware('auth')->group(function () {
 });
 Route::prefix('admin')->middleware(['auth', AdminOnly::class])->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin');
+    Route::get('/visitors', [\App\Http\Controllers\VisitorController::class, 'index'])->name('admin.visitors');
+    Route::get('/visitors/live', [\App\Http\Controllers\VisitorController::class, 'live'])->name('admin.visitors.live');
+    Route::put('/visitors/settings', [\App\Http\Controllers\VisitorController::class, 'settings'])->middleware('throttle:5,1')->name('admin.visitors.settings');
     Route::get('/categories', [CategoryController::class, 'index'])->name('admin.categories');
     Route::post('/categories', [CategoryController::class, 'save'])->name('admin.categories.store');
     Route::put('/categories/{category}', [CategoryController::class, 'save'])->name('admin.categories.update');

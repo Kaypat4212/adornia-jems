@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\EmailSetting;
 use App\Models\GatewaySetting;
+use App\Models\VisitorSetting;
 use Throwable;
 
 class LogRedactor
@@ -13,6 +14,7 @@ class LogRedactor
         $secrets = [config('app.key'), config('database.connections.mysql.password'), config('mail.mailers.smtp.password')];
         try {
             $secrets[] = EmailSetting::find(1)?->content['password'] ?? null;
+            $secrets[] = VisitorSetting::values()['telegram_token'];
             foreach (GatewaySetting::all() as $gateway) {
                 $credentials = $gateway->credentials ?? [];
                 array_walk_recursive($credentials, function (mixed $value) use (&$secrets): void {

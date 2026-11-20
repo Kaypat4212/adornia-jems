@@ -1,0 +1,38 @@
+.navigation-progress.loader--none { display: none; }
+.navigation-progress.loader--ring,
+.navigation-progress.loader--dots,
+.navigation-progress.loader--pulse,
+.navigation-progress.loader--diamond {
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 9px;
+    background: #f7f5eff2;
+    transform: none;
+    visibility: hidden;
+}
+.is-navigating .navigation-progress[class*="loader--"] {
+    animation: none;
+    opacity: 1;
+    visibility: visible;
+}
+.navigation-progress.loader--bar { background: var(--gold); }
+.is-navigating .navigation-progress.loader--bar { animation: navigation-loading 1.5s ease-out infinite; }
+.loader--ring span:first-child {
+    width: 48px; height: 48px; border: 3px solid #9c794b33;
+    border-top-color: var(--gold); border-radius: 50%; animation: visitor-spin .8s linear infinite;
+}
+.loader--dots span { width: 12px; height: 12px; background: var(--gold); border-radius: 50%; animation: visitor-bounce .9s ease-in-out infinite alternate; }
+.loader--dots span:nth-child(2) { animation-delay: .15s; }
+.loader--dots span:nth-child(3) { animation-delay: .3s; }
+.loader--pulse span:first-child { width: 48px; height: 48px; border-radius: 50%; background: var(--gold); animation: visitor-pulse 1s ease-in-out infinite alternate; }
+.loader--diamond span:first-child { width: 36px; height: 36px; border: 2px solid var(--gold); animation: visitor-spin 1.8s ease-in-out infinite; }
+@keyframes visitor-spin { to { transform: rotate(360deg); } }
+@keyframes visitor-bounce { to { transform: translateY(-14px); opacity: .4; } }
+@keyframes visitor-pulse { to { transform: scale(.6); opacity: .4; } }
+@media (prefers-reduced-motion: reduce) {
+    .navigation-progress span { animation: none !important; }
+}
