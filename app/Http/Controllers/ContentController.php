@@ -29,9 +29,9 @@ class ContentController extends Controller
     {
         $upload = $request->file('image_upload');
         $uploadError = $upload instanceof \Illuminate\Http\UploadedFile ? $upload->getErrorMessage() : '';
-        $data = $request->validate(['type' => 'required|in:hero,ticker,collection,story,custom', 'sort_order' => 'required|integer|min:0|max:10000', 'active' => 'nullable|boolean', 'content' => 'required|array', 'content.*' => 'nullable|string|max:5000', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096'], [
+        $data = $request->validate(['type' => 'required|in:hero,ticker,collection,story,custom', 'sort_order' => 'required|integer|min:0|max:10000', 'active' => 'nullable|boolean', 'content' => 'required|array', 'content.*' => 'nullable|string|max:5000', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192'], [
             'image_upload.uploaded' => $uploadError ?: 'The photo could not be uploaded. Choose it again and retry.',
-            'image_upload.max' => 'Choose a photo up to 4 MB.',
+            'image_upload.max' => 'Choose a photo up to 8 MB.',
             'image_upload.image' => 'Choose a valid JPG, PNG or WebP photo.',
             'image_upload.mimes' => 'Choose a JPG, PNG or WebP photo.',
         ]);

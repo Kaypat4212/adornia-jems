@@ -39,24 +39,36 @@ class ImageUploadTest extends TestCase
         $this->assertNotSame('Updated heading', $hero->fresh()->content['heading']);
     }
 
-    public function test_photos_between_two_and_four_megabytes_are_accepted(): void
+    public function test_product_and_homepage_forms_include_one_shared_photo_editor(): void
+    {
+        $productPage = $this->get('/admin/products/create')
+            ->assertOk()->assertSee('data-photo-input', false)->assertSee('photo-editor.js');
+        $this->assertSame(1, substr_count($productPage->getContent(), 'id="photo-editor"'));
+
+        $homepage = $this->get('/admin/homepage')
+            ->assertOk()->assertSee('data-photo-input', false)->assertSee('photo-editor.js');
+        $this->assertSame(1, substr_count($homepage->getContent(), 'id="photo-editor"'));
+        $this->assertGreaterThan(1, substr_count($homepage->getContent(), 'data-photo-input'));
+    }
+
+    public function test_photos_between_four_and_eight_megabytes_are_accepted(): void
     {
         Storage::fake('public');
-        $this->put('/admin/products/1', $this->productData() + ['image_upload' => $this->photo(3 * 1024 * 1024)])
+        $this->put('/admin/products/1', $this->productData() + ['image_upload' => $this->photo(6 * 1024 * 1024)])
             ->assertSessionHasNoErrors()->assertRedirect('/admin');
         Storage::disk('public')->assertExists(Product::findOrFail(1)->image);
 
         $hero = HomepageSection::where('type', 'hero')->firstOrFail();
         $this->put('/admin/sections/'.$hero->id, [
-            'type' => 'hero', 'sort_order' => 10, 'content' => ['heading' => 'Updated heading'], 'image_upload' => $this->photo(3 * 1024 * 1024),
+            'type' => 'hero', 'sort_order' => 10, 'content' => ['heading' => 'Updated heading'], 'image_upload' => $this->photo(6 * 1024 * 1024),
         ])->assertSessionHasNoErrors();
         Storage::disk('public')->assertExists($hero->fresh()->content['image']);
     }
 
-    public function test_photos_over_four_megabytes_are_rejected_without_changing_the_product(): void
+    public function test_photos_over_eight_megabytes_are_rejected_without_changing_the_product(): void
     {
-        $this->put('/admin/products/1', $this->productData() + ['image_upload' => $this->photo(4 * 1024 * 1024)])
-            ->assertSessionHasErrors(['image_upload' => 'Choose a photo up to 4 MB.']);
+        $this->put('/admin/products/1', $this->productData() + ['image_upload' => $this->photo(8 * 1024 * 1024)])
+            ->assertSessionHasErrors(['image_upload' => 'Choose a photo up to 8 MB.']);
         $this->assertDatabaseMissing('products', ['name' => 'Updated piece']);
     }
 

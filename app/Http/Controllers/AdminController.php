@@ -58,9 +58,9 @@ class AdminController extends Controller
     {
         $upload = $request->file('image_upload');
         $uploadError = $upload instanceof \Illuminate\Http\UploadedFile ? $upload->getErrorMessage() : '';
-        $data = $request->validate(['name' => 'required|string|max:100', 'type' => 'required|string|exists:categories,name', 'detail' => 'required|string|max:200', 'description' => 'nullable|string|max:5000', 'price' => 'required|integer|min:1|max:100000000', 'stock' => 'required|integer|min:0|max:100000', 'art' => 'required|in:ring,band,hoops,necklace', 'tag' => 'nullable|string|max:40', 'active' => 'nullable|boolean', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096'], [
+        $data = $request->validate(['name' => 'required|string|max:100', 'type' => 'required|string|exists:categories,name', 'detail' => 'required|string|max:200', 'description' => 'nullable|string|max:5000', 'price' => 'required|integer|min:1|max:100000000', 'stock' => 'required|integer|min:0|max:100000', 'art' => 'required|in:ring,band,hoops,necklace', 'tag' => 'nullable|string|max:40', 'active' => 'nullable|boolean', 'image_upload' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192'], [
             'image_upload.uploaded' => $uploadError ?: 'The photo could not be uploaded. Choose it again and retry.',
-            'image_upload.max' => 'Choose a photo up to 4 MB.',
+            'image_upload.max' => 'Choose a photo up to 8 MB.',
             'image_upload.image' => 'Choose a valid JPG, PNG or WebP photo.',
             'image_upload.mimes' => 'Choose a JPG, PNG or WebP photo.',
         ]);
