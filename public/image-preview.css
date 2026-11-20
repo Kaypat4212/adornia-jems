@@ -1,0 +1,235 @@
+.hero-image-preview {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: block;
+}
+
+.section-image-preview,
+.product-image-preview {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.product-image-preview {
+    height: 100%;
+}
+
+[data-image-preview] {
+    cursor: zoom-in;
+}
+
+.image-preview-label,
+.image-zoom-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    background: #fffdf7ed;
+    color: #302c24;
+    border: 1px solid #d8d0c2;
+    font: 11px 'DM Sans', sans-serif;
+    border-radius: 24px;
+    position: absolute;
+    z-index: 2;
+}
+
+.image-preview-label {
+    top: 18px;
+    left: 18px;
+    pointer-events: none;
+}
+
+.image-zoom-button {
+    bottom: 12px;
+    left: 12px;
+    cursor: zoom-in;
+}
+
+.admin-image-preview {
+    display: inline-block;
+}
+
+.section-image-preview .section-photo {
+    display: block;
+}
+
+html.image-preview-open {
+    overflow: hidden;
+}
+
+.image-preview-dialog {
+    width: min(1100px, calc(100vw - 32px));
+    max-width: none;
+    max-height: calc(100dvh - 32px);
+    padding: 20px;
+    overflow: auto;
+    border-radius: 8px;
+    box-shadow: 0 24px 100px #0005;
+}
+
+.image-preview-dialog::backdrop {
+    background: #17150fe0;
+    backdrop-filter: blur(8px);
+}
+
+.image-preview-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.image-preview-heading h2 {
+    font-size: clamp(24px, 4vw, 32px);
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.image-preview-close,
+.image-preview-controls button {
+    min-width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 24px;
+}
+
+.image-preview-stage {
+    position: relative;
+    width: 100%;
+    height: min(65dvh, 700px);
+    overflow: hidden;
+    background: #e9e5db;
+    border-radius: 4px;
+    touch-action: none;
+    user-select: none;
+}
+
+.image-preview-stage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform-origin: center;
+    transition: transform .16s ease-out;
+    -webkit-user-drag: none;
+}
+
+.image-preview-stage img[hidden] {
+    display: none;
+}
+
+.image-preview-stage.is-zoomed {
+    cursor: grab;
+}
+
+.image-preview-stage.is-interacting {
+    cursor: grabbing;
+}
+
+.image-preview-stage.is-interacting img {
+    transition: none;
+}
+
+.image-preview-message {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    padding: 24px;
+    margin: 0;
+    text-align: center;
+}
+
+.image-preview-message[hidden] {
+    display: none;
+}
+
+.image-preview-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.image-preview-controls button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.image-preview-controls [data-preview-reset] {
+    border-radius: 24px;
+    font-size: 12px;
+    padding: 0 18px;
+}
+
+.image-preview-controls output {
+    min-width: 48px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+#image-preview-help {
+    margin: 12px 0 0;
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .hero-image-preview .hero-photo,
+    .section-image-preview .section-photo {
+        animation: photo-drift 12s ease-in-out infinite alternate;
+    }
+
+    .product-art .product-photo {
+        animation: photo-drift 9s ease-in-out infinite alternate;
+        transition: filter .3s ease;
+    }
+
+    .product:nth-child(even) .product-photo {
+        animation-direction: alternate-reverse;
+    }
+
+    .product:hover .product-photo {
+        filter: brightness(1.04);
+    }
+
+    @keyframes photo-drift {
+        from { transform: scale(1.025) translateY(-2px); }
+        to { transform: scale(1.065) translateY(3px); }
+    }
+}
+
+@media (max-width: 600px) {
+    .image-preview-dialog {
+        padding: 14px;
+        width: calc(100vw - 16px);
+        max-height: calc(100dvh - 16px);
+    }
+
+    .image-preview-stage {
+        height: 58dvh;
+    }
+
+    .image-zoom-button {
+        padding: 8px 12px;
+        bottom: 8px;
+        left: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .image-preview-stage img {
+        transition: none;
+    }
+}
