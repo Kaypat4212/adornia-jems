@@ -162,7 +162,9 @@ class VisitorTest extends TestCase
         $this->assertSame('NG', $other->fresh()->country_code);
         $this->actingAs(User::factory()->create(['is_admin' => true]))->get('/admin/visitors/live')
             ->assertJsonFragment(['country' => 'Nigeria', 'country_code' => 'NG', 'device' => 'Mobile']);
-        $this->get('/admin/visitors')->assertOk()->assertSee('Nigeria')->assertSee('Mobile');
+        $this->get('/admin/visitors')->assertOk()->assertSee('Nigeria')->assertSee('Mobile')
+            ->assertSee('Country: Nigeria')->assertSee('Device type: Mobile')
+            ->assertHeader('Cache-Control', 'no-store, private');
     }
 
     public function test_changed_ips_clear_old_countries_and_stale_jobs_cannot_overwrite_them(): void

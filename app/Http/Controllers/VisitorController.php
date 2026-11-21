@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\View\View;
 
 class VisitorController extends Controller
 {
@@ -74,13 +73,13 @@ class VisitorController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function index(): View
+    public function index(): Response
     {
-        return view('admin.visitors', [
+        return response()->view('admin.visitors', [
             'settings' => VisitorSetting::values(), 'visitors' => Visitor::orderByDesc('last_seen_at')->paginate(30),
             'active' => Visitor::where('last_seen_at', '>=', now()->subSeconds(90))->count(),
             'alerts' => VisitorAlert::latest()->limit(20)->get(),
-        ]);
+        ])->header('Cache-Control', 'no-store, private')->header('X-Robots-Tag', 'noindex, nofollow');
     }
 
     public function live(): JsonResponse

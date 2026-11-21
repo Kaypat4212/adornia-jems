@@ -20,8 +20,9 @@
     <button class="cta">SAVE VISITOR SETTINGS</button>
 </form></details>
 <h2>Recent visitors</h2>
-<div class="table-wrap"><table><thead><tr><th>Visitor</th><th>IP</th><th>Country</th><th>Device</th><th>Account</th><th>Page</th><th>Last seen</th></tr></thead><tbody>
-@forelse($visitors as $visitor)<tr><td>#{{ $visitor->id }}</td><td>{{ $visitor->maskedIp() }}</td><td>{{ $visitor->country ?? 'Unknown' }}</td><td>{{ $visitor->device_type }}</td><td>{{ $visitor->user_id ? '#'.$visitor->user_id : 'Guest' }}</td><td>{{ $visitor->path }}</td><td>{{ $visitor->last_seen_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="7">No visitors recorded yet.</td></tr>@endforelse
+<p>Older visits may show Unknown until that visitor returns. Country also needs the notification queue worker to finish its lookup.</p>
+<div class="table-wrap"><table><thead><tr><th>Visitor</th><th>IP</th><th class="visitor-detail-column">Country</th><th class="visitor-detail-column">Device type</th><th>Account</th><th>Page</th><th>Last seen</th></tr></thead><tbody>
+@forelse($visitors as $visitor)<tr><td>#{{ $visitor->id }}<span class="visitor-mobile-details"><span>Country: {{ $visitor->country ?? 'Unknown' }}</span><span>Device type: {{ $visitor->device_type ?: 'Unknown' }}</span></span></td><td>{{ $visitor->maskedIp() }}</td><td class="visitor-detail-column">{{ $visitor->country ?? 'Unknown' }}</td><td class="visitor-detail-column">{{ $visitor->device_type ?: 'Unknown' }}</td><td>{{ $visitor->user_id ? '#'.$visitor->user_id : 'Guest' }}</td><td>{{ $visitor->path }}</td><td>{{ $visitor->last_seen_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="7">No visitors recorded yet.</td></tr>@endforelse
 </tbody></table></div>{{ $visitors->links() }}
 <h2>New visitor alerts</h2>
 <p>Email attempts are available in <a href="{{ url('/admin/email-settings') }}">Email notifications</a>. Email and Telegram delivery use the emails queue.</p>

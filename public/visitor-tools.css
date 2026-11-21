@@ -1,4 +1,11 @@
 .navigation-progress.loader--none { display: none; }
+.visitor-mobile-details { display: none; }
+[data-live-visitors] p { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+    .visitor-detail-column { display: none; }
+    .visitor-mobile-details { display: block; min-width: 140px; margin-top: 8px; font-size: 12px; line-height: 1.8; white-space: normal; }
+    .visitor-mobile-details span { display: block; }
+}
 .navigation-progress.loader--ring,
 .navigation-progress.loader--dots,
 .navigation-progress.loader--pulse,

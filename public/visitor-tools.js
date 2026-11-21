@@ -24,13 +24,13 @@
     async function refreshLive() {
         if (!live || document.hidden) return;
         try {
-            const response = await fetch(live.dataset.liveUrl, {headers: {Accept: 'application/json'}, signal: AbortSignal.timeout(10000)});
+            const response = await fetch(live.dataset.liveUrl, {headers: {Accept: 'application/json'}, cache: 'no-store', signal: AbortSignal.timeout(10000)});
             if (!response.ok) throw new Error('Activity could not be refreshed.');
             const data = await response.json();
             document.querySelector('[data-active-visitors]').textContent = data.active;
             const rows = data.visitors.map(visitor => {
                 const row = document.createElement('p');
-                row.textContent = `Visitor #${visitor.id} · ${visitor.ip} · ${visitor.country || 'Unknown country'} · ${visitor.device || 'Unknown device'} · ${visitor.user} · ${visitor.path}`;
+                row.textContent = `Visitor #${visitor.id} · ${visitor.ip} · Country: ${visitor.country || 'Unknown'} · Device type: ${visitor.device || 'Unknown'} · ${visitor.user} · ${visitor.path}`;
                 return row;
             });
             if (!rows.length) {
